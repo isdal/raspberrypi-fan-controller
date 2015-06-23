@@ -12,8 +12,8 @@ import logging
 
 if __name__ == '__main__':
     target_temp = 72
-    step = 5.0
-    total_hours = 1.0 * 8
+    step = 10.0
+    total_hours = 3.0 * 24
     fan_temp_decrease_per_minute = 0.1
     temp_increase_per_minute = 0.03
     t = np.arange(0, total_hours * 3600, step)
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     thermostat = Thermostat(target_temp,
                             outside_window=600 / step,
                             inside_window=60 / step,
-                            hysteresis=0.0,
+                            hysteresis=0.5,
                             min_outside_diff=2)
     for i in range(len(t)):
         thermostat.RecordIndoorMeasurement(indoor[i])
@@ -45,6 +45,7 @@ if __name__ == '__main__':
             indoor[i + 1] = indoor[i] + (temp_increase_per_minute / (60.0 / step))
             if fan_speed: 
                 indoor[i + 1] = indoor[i] - (fan_speed * fan_temp_decrease_per_minute) / (60.0 / step)
+
     logging.warn('Done with data, plotting')
     logging.warn('Changes: %d (per hour: %.1f)',
                  thermostat.GetStateChangeCount(),

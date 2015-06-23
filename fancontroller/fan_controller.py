@@ -3,120 +3,36 @@ Created on May 30, 2015
 
 @author: isdal
 '''
-from collections import deque
-
-import running_median
 import logging
 import time
-import math
+from discretepid import PID
+from fancontroller.filters import MedianFilter
+from math import ceil
+import urllib
+import httplib
 
 STATE_OFF = 0
 STATE_ON = 1
 
-class _PID:
-    """
-    Discrete PID control
-    """
-
-    def __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
-
-        self.Kp = P
-        self.Ki = I
-        self.Kd = D
-        self.Derivator = Derivator
-        self.Integrator = Integrator
-        self.Integrator_max = Integrator_max
-        self.Integrator_min = Integrator_min
-
-        self.set_point = 0.0
-        self.error = 0.0
-
-    def update(self, current_value):
-        """
-        Calculate PID output value for given reference input and feedback
-        """
-
-        self.error = self.set_point - current_value
-
-        self.P_value = self.Kp * self.error
-        self.D_value = self.Kd * (self.error - self.Derivator)
-        self.Derivator = self.error
-
-        self.Integrator = self.Integrator + self.error
-
-        if self.Integrator > self.Integrator_max:
-            self.Integrator = self.Integrator_max
-        elif self.Integrator < self.Integrator_min:
-            self.Integrator = self.Integrator_min
-
-        self.I_value = self.Integrator * self.Ki
-
-        PID = self.P_value + self.I_value + self.D_value
-
-        return PID
-
-    def setPoint(self, set_point):
-        """
-        Initilize the setpoint of PID
-        """
-        if self.set_point != set_point:
-            self.set_point = set_point
-            self.Integrator = 0
-            self.Derivator = 0
-
-    def setIntegrator(self, Integrator):
-        self.Integrator = Integrator
-
-    def setDerivator(self, Derivator):
-        self.Derivator = Derivator
-
-    def setKp(self, P):
-        self.Kp = P
-
-    def setKi(self, I):
-        self.Ki = I
-
-    def setKd(self, D):
-        self.Kd = D
-
-    def getPoint(self):
-        return self.set_point
-
-    def getError(self):
-        return self.error
-
-    def getIntegrator(self):
-        return self.Integrator
-
-    def getDerivator(self):
-        return self.Derivator
-
-class _MedianFilter:
-    """Simple class for calculating the median over a window of temperature measurements."""
-    def __init__(self, window):
-        self.window = window
-        self.skiplist = running_median.IndexableSkiplist(expected_size=window)
-        self.queue = deque()
-        self.sum = 0.0
+class _TempSensorReader:
+    
+    def __init__(self, sensor):
+        self.sensor = sensor
         
-    def add(self, temperature):
-        if len(self.queue) == self.window:
-            to_remove = self.queue.popleft()
-            self.skiplist.remove(to_remove)
-            self.sum -= to_remove
-        self.queue.append(temperature)
-        self.skiplist.insert(temperature)
-        self.sum += temperature
-        
-    def getMedian(self):
-        if len(self.queue) < self.window:
-            return None
-        return self.skiplist[len(self.queue) // 2]
-
-    def getAverage(self):
-        if len(self.queue) < self.window:
-            return None
-        return self.sum / self.window
+    def Read(self):
+        with open('/sensors/' + self.sensor, 'r') as sensor_file:
+            temp_raw = sensor_file.readlines()
+            if temp_raw[0].strip()[-3:] != 'YES':
+                logging.warn('Got non YES from sensor: ' + temp_raw[0])
+                return None
+            temp_pos = temp_raw[1].find('t=')
+            if temp_pos == -1:
+                logging.warn('No =t sensor read: ' + temp_raw[1])
+                return None
+            temp_c = int(temp_raw[1][temp_pos + 2:]) / 1000.0
+            logging.debug('sensor %s=%f C', self.sensor, temp_c)
+            return temp_c
+            
 
 class _FanController:
     """Class for controlling a physical fan """
@@ -174,11 +90,11 @@ class Thermostat:
                  min_outside_diff=MIN_OUTSIDE_DIFF):
         self._hysteresis = hysteresis
         self._min_outside_diff = min_outside_diff
-        self._outside_temp = _MedianFilter(outside_window)
-        self._inside_temp = _MedianFilter(inside_window)
+        self._outside_temp = MedianFilter(outside_window)
+        self._inside_temp = MedianFilter(inside_window)
         self._target_temp = target_temp
         self._fc = _FanController(target_temp)
-        self.p = _PID(P=-1, I=-0.00, D=-0.0)  # I=-0.03, D=-1)
+        self.p = PID(P=-0.5, I=-0.00, D=-0.0)  # I=-0.03, D=-1)
         self.p.setPoint(target_temp)
         self.pid = 0
     
@@ -201,11 +117,12 @@ class Thermostat:
         diff = inside - target
         self.p.setPoint(target)
         def bucket(v, buckets=20):
-            return int(v * buckets) / float(buckets)
-        self.pid = max(0, min(1, bucket(self.p.update(inside), buckets=20)))
+            return ceil(v * buckets) / float(buckets)
+        self.pid = max(0, min(1, bucket(self.p.update(inside), buckets=10)))
         msg = 'in_state: %d\tcomp_target %.2f\ttarget: %.2f\tin: %.2f\tout: %.2f\tdiff: %.2f\tpid:%.2f' % (
           curr_state, target, self._target_temp, inside, outside, diff, self.pid)
-        if inside > target:
+        if self.pid:
+        # if inside > target:
             logging.error('\nON:\t' + msg)
             self._fc.UpdateState(STATE_ON)
             return STATE_ON
@@ -222,9 +139,61 @@ class Thermostat:
             return STATE_OFF
         new_state = self._RecomputeState(inside, outside, self._fc.GetState())        
         return new_state
+
     def GetStateChangeCount(self):
         return self._fc.state_changes
+    
+    def GetMeasurements(self):
+        """Returns a dict with the current states to report.
+
+        indoor_temp, outdoor_temp, pid, target_temp
+        """
+        return {'indoor_temp' : self._inside_temp.getMedian(),
+                'outdoor_temp' : self._outside_temp.getMedian(),
+                'pid': self.pid,
+                'target_temp': self.p.getPoint()}
+
+class MetricsUploader:
+    
+    def __init__(self):
+        pass
+    
+    def Upload(self, measurements):
+        try:
+            params = urllib.urlencode({'field1': measurements['indoor_temp'],
+                                       'field2': measurements['outdoor_temp'],
+                                       'field3': measurements['pid'],
+                                       'field4': measurements['target_temp'],
+                                       'key':'102HUIUCF7VYDM1K'})
+            headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
+            conn = httplib.HTTPConnection('api.thingspeak.com:80')
+            conn.request('POST', '/update', params, headers)
+            ts_response = conn.getresponse()
+            logging.debug('Thingspeak Response: %s %s', ts_response.status, ts_response.reason)
+            conn.close
+        except Exception as e:
+            logging.exception(e)            
+
 
 if __name__ == '__main__':
-    pass
+    indoor_sensor = _TempSensorReader('indoor_temp')
+    uploader = MetricsUploader()
+    thermostat = Thermostat(target_temp=24,
+                            outside_window=1,
+                            inside_window=1,
+                            hysteresis=0.5,
+                            min_outside_diff=2)
 
+    start_time = time.time()
+    iteration = 0
+    PERIOD = 5
+    while True:
+        thermostat.RecordIndoorMeasurement(indoor_sensor.Read())
+        thermostat.RecordOutdoorMeasurement(20)        
+        thermostat.ControlLoop()
+        uploader.Upload(thermostat.GetMeasurements())
+        iteration += 1
+        next_iteration_start = start_time + iteration * PERIOD
+        sleep_s = next_iteration_start - time.time()
+        logging.warn('sleeping %.2fs', sleep_s)
+        time.sleep(sleep_s)

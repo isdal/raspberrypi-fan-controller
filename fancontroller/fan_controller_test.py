@@ -7,8 +7,8 @@ import logging
 import unittest
 import sys
 
-from fan_controller import _MedianFilter
 from fancontroller import Thermostat, STATE_OFF, STATE_ON
+from fancontroller.filters import MedianFilter
 
 
 logger = logging.getLogger()
@@ -19,7 +19,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 class MedianFilterTest(unittest.TestCase):
 
     def createFilter(self, window, values):
-        median_filter = _MedianFilter(window)
+        median_filter = MedianFilter(window)
         for v in values:
             median_filter.add(v)
         return median_filter
