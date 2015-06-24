@@ -9,12 +9,21 @@ import sys
 
 from fancontroller import Thermostat, STATE_OFF, STATE_ON
 from fancontroller.filters import MedianFilter
+from fancontroller.fan_controller import NoaaForecast
+import json
 
 
 logger = logging.getLogger()
 logger.level = logging.DEBUG
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
+
+class NoaaDownloaderTest(unittest.TestCase):
+    def testDownload(self):
+        noaa = NoaaForecast()
+        noaa._cache = json.loads(open('noaa.json').read())
+        self.assertAlmostEqual(noaa.GetCurrentTemp(), 20.56, places=2)
+        self.assertEqual(noaa.GetTomorrowsHigh(), 27)
 
 class MedianFilterTest(unittest.TestCase):
 

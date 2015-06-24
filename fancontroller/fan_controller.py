@@ -11,9 +11,36 @@ from math import ceil
 import urllib
 import httplib
 import sys
+import requests
+import json
 
 STATE_OFF = 0
 STATE_ON = 1
+
+class NoaaForecast:
+    def __init__(self):
+        self._cache = None
+    
+    def _ftoc(self, degrees_f):
+        return (float(degrees_f) - 32) * 5/9
+        
+    
+    def Download(self):
+        url = 'http://forecast.weather.gov/MapClick.php?lat=47.6738&lon=-122.342&unit=c&lg=english&FcstType=json'
+        resp = requests.get(url=url)
+        open('noaa.json','w').write(resp.text)
+        self._cache = json.loads(resp.text)
+    
+    def GetCurrentTemp(self):
+        if not self._cache:
+            return None
+        return self._ftoc(self._cache['currentobservation']['Temp'])
+    
+    def GetTomorrowsHigh(self):
+        if not self._cache:
+            return None
+        high_pos = self._cache['time']['tempLabel'].index('High')
+        return float(self._cache['data']['temperature'][high_pos])
 
 class _TempSensorReader:
     
