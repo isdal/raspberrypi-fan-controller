@@ -10,6 +10,7 @@ from fancontroller.filters import MedianFilter
 from math import ceil
 import urllib
 import httplib
+import sys
 
 STATE_OFF = 0
 STATE_ON = 1
@@ -123,11 +124,11 @@ class Thermostat:
           curr_state, target, self._target_temp, inside, outside, diff, self.pid)
         if self.pid:
         # if inside > target:
-            logging.error('\nON:\t' + msg)
+            logging.info('ON:\t' + msg)
             self._fc.UpdateState(STATE_ON)
             return STATE_ON
         else:
-            logging.error('\nOFF:\t' + msg)
+            logging.info('OFF:\t' + msg)
             self._fc.UpdateState(STATE_OFF)
             return STATE_OFF
             
@@ -177,25 +178,37 @@ class MetricsUploader:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+        datefmt="%H:%M:%S", stream=sys.stdout)
+
     indoor_sensor = _TempSensorReader('indoor_temp')
     outdoor_sensor = _TempSensorReader('outdoor_temp')
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=23,
+    thermostat = Thermostat(target_temp=22,
                             outside_window=1,
                             inside_window=1,
                             hysteresis=0.5,
-                            min_outside_diff=2)
-
+                            min_outside_diff=1)
+    logging.info('Thermostat started, target: %f', thermostat._target_temp)
     start_time = time.time()
+    last_report_time = start_time
     iteration = 0
     PERIOD = 5
+    REPORT_PERIOD = 60
     while True:
         thermostat.RecordIndoorMeasurement(indoor_sensor.Read())
         thermostat.RecordOutdoorMeasurement(outdoor_sensor.Read())        
         thermostat.ControlLoop()
-        uploader.Upload(thermostat.GetMeasurements())
+        if iteration % int(REPORT_PERIOD / PERIOD) == 0:
+            uploader.Upload(thermostat.GetMeasurements())
         iteration += 1
         next_iteration_start = start_time + iteration * PERIOD
         sleep_s = next_iteration_start - time.time()
-        logging.warn('sleeping %.2fs', sleep_s)
-        time.sleep(sleep_s)
+        logging.debug('sleeping %.2fs', sleep_s)
+        if sleep_s > 0:
+            time.sleep(sleep_s)
+        else:
+            start_time = time.time()
+            iteration = 0
