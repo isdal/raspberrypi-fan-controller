@@ -160,6 +160,7 @@ class MetricsUploader:
     
     def Upload(self, measurements):
         try:
+            # https://thingspeak.com/channels/43590
             params = urllib.urlencode({'field1': measurements['indoor_temp'],
                                        'field2': measurements['outdoor_temp'],
                                        'field3': measurements['pid'],
@@ -177,8 +178,9 @@ class MetricsUploader:
 
 if __name__ == '__main__':
     indoor_sensor = _TempSensorReader('indoor_temp')
+    outdoor_sensor = _TempSensorReader('outdoor_temp')
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=24,
+    thermostat = Thermostat(target_temp=23,
                             outside_window=1,
                             inside_window=1,
                             hysteresis=0.5,
@@ -189,7 +191,7 @@ if __name__ == '__main__':
     PERIOD = 5
     while True:
         thermostat.RecordIndoorMeasurement(indoor_sensor.Read())
-        thermostat.RecordOutdoorMeasurement(20)        
+        thermostat.RecordOutdoorMeasurement(outdoor_sensor.Read())        
         thermostat.ControlLoop()
         uploader.Upload(thermostat.GetMeasurements())
         iteration += 1
