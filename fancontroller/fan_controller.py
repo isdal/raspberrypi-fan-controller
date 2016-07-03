@@ -7,6 +7,7 @@ import logging
 import time
 from discretepid import PID
 from fancontroller.filters import MedianFilter
+from fancontroller.fan_gpio import FanGpio
 from math import ceil
 import urllib
 import httplib
@@ -67,18 +68,24 @@ class _FanController:
     _MIN_UPDATE_DELAY = 60
     _MAX_SPEED_AT_DIFF = 4
     _MIN_SPEED = 0.2
+    _GPIO_PORT = 17
 
     def __init__(self, target):
         self._state = STATE_OFF
         self._speed = 0
         self.last_update = 0
         self.state_changes = 0
+        self.gpio = FanGpio(_FanController._GPIO_PORT)
+        # start off.
+        self.gpio.Off()
     
     def _TurnOnFan(self):
         logging.info('Turning on fan')
+        self.gpio.On()
 
     def _TurnOffFan(self):
         logging.info('Turning off fan')
+        self.gpio.Off()
     
     def _SetActualFan(self, speed):
         update_delay = self._GetTime() - self.last_update
@@ -109,7 +116,7 @@ class _FanController:
 class Thermostat:
     WINDOW = 60
     HYSTERESIS = 1
-    MIN_OUTSIDE_DIFF = 2    
+    MIN_OUTSIDE_DIFF = 1
     
     def __init__(self, target_temp,
                  outside_window=WINDOW,
@@ -122,7 +129,7 @@ class Thermostat:
         self._inside_temp = MedianFilter(inside_window)
         self._target_temp = target_temp
         self._fc = _FanController(target_temp)
-        self.p = PID(P=-0.5, I=-0.00, D=-0.0)  # I=-0.03, D=-1)
+        self.p = PID(P=-1.5, I=-0.00, D=-0.0)  # I=-0.03, D=-1)
         self.p.setPoint(target_temp)
         self.pid = 0
     
@@ -213,7 +220,7 @@ if __name__ == '__main__':
     indoor_sensor = _TempSensorReader('indoor_temp')
     outdoor_sensor = _TempSensorReader('outdoor_temp')
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=22,
+    thermostat = Thermostat(target_temp=23,
                             outside_window=1,
                             inside_window=1,
                             hysteresis=0.5,
