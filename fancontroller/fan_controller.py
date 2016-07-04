@@ -220,7 +220,7 @@ if __name__ == '__main__':
     indoor_sensor = _TempSensorReader('indoor_temp')
     outdoor_sensor = _TempSensorReader('outdoor_temp')
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=23,
+    thermostat = Thermostat(target_temp=22,
                             outside_window=1,
                             inside_window=1,
                             hysteresis=0.5,
