@@ -1,4 +1,5 @@
 #!/bin/bash
+date --rfc-3339=seconds
 cd /home/isdal/raspberrypi-fan-controller
 git pull origin master
 echo "Restarting fan controller"
