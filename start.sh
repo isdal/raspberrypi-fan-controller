@@ -1,5 +1,5 @@
 #!/bin/bash
-pid=$(ps aux | grep fan_controller.py | grep -v 'grep'
+pid=$(ps aux | grep fan_controller.py | grep -v 'grep')
 if [ -n "$VAR" ]; then
   echo "Killing old controller"
   kill `pgrep -f fan_controller.py`
