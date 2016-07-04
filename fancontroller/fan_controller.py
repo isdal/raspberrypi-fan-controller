@@ -12,6 +12,7 @@ from fancontroller.fan_gpio import FanGpio
 from math import ceil
 import urllib
 import httplib
+import os
 import sys
 import requests
 import json
@@ -230,7 +231,9 @@ if __name__ == '__main__':
     config_file = 'config.txt'
     if len(sys.argv) == 2:
         config_file = sys.argv[1]
-    config.read(config_file)
+    if os.path.isfile(config_file):
+        logging.info('reading config %s', config_file)
+        config.read(config_file)
 
     uploader = MetricsUploader()
     thermostat = Thermostat(target_temp=config.get('DEFAULT', 'target_temp'),
