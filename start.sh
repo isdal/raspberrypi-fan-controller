@@ -1,8 +1,8 @@
 #!/bin/bash
-pid=$(ps aux | grep fan_controller.py | grep -v 'grep' | awk '{print $2}')
+pid=$(ps aux | grep fan_controller.py | grep -v 'grep'
 if [ -n "$VAR" ]; then
   echo "Killing old controller"
-  kill $pid
+  kill `pgrep -f fan_controller.py`
 fi
 cd /home/isdal/raspberrypi-fan-controller
 git pull origin master
