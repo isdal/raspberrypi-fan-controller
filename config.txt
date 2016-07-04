@@ -1,0 +1,19 @@
+# All temperature based units are in Celcius.
+[DEFAULT]
+
+# Target inside temperature.
+target_temp=23
+
+# The range of acceptable temperatures. For example, if target_temp=23 and
+# hysteresis=2 the acceptable temperature range is 22-24
+hysteresis=0.5
+
+# The minimum number of degrees the outdoor temperature must be below
+# the indoor temerature before the fan turns on. 
+min_outside_diff=0.5
+
+# The number of seconds between each invocation of the control loop.
+period=5
+
+# The number of seconds between metric report uploads to thingspeak.
+report_period=60

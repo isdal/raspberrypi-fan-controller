@@ -3,6 +3,7 @@ Created on May 30, 2015
 
 @author: isdal
 '''
+import ConfigParser
 import logging
 import time
 from discretepid import PID
@@ -219,18 +220,30 @@ if __name__ == '__main__':
 
     indoor_sensor = _TempSensorReader('indoor_temp')
     outdoor_sensor = _TempSensorReader('outdoor_temp')
+    config = ConfigParser.RawConfigParser({
+        'target_temp': 23,
+        'hysteresis': 1,
+        'min_outside_diff': 1,
+        'period': 5,
+        'report_period': 60,
+        })
+    config_file = 'config.txt'
+    if len(sys.argv) == 2:
+        config_file = sys.argv[1]
+    config.read(config_file)
+
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=23,
+    thermostat = Thermostat(target_temp=config.get('DEFAULT', 'target_temp'),
                             outside_window=1,
                             inside_window=1,
-                            hysteresis=0.5,
-                            min_outside_diff=1)
+                            hysteresis=config.get('DEFAULT', 'hysteresis'),
+                            min_outside_diff=config.get('DEFAULT', 'min_outside_diff'))
     logging.info('Thermostat started, target: %f', thermostat._target_temp)
     start_time = time.time()
     last_report_time = start_time
     iteration = 0
-    PERIOD = 5
-    REPORT_PERIOD = 60
+    PERIOD = config.get('DEFAULT', 'period')
+    REPORT_PERIOD = config.get('DEFAULT', 'report_period')
     while True:
         thermostat.RecordIndoorMeasurement(indoor_sensor.Read())
         thermostat.RecordOutdoorMeasurement(outdoor_sensor.Read())        
