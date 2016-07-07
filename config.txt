@@ -2,7 +2,7 @@
 [DEFAULT]
 
 # Target inside temperature.
-target_temp=23
+target_temp=22.5
 
 # The range of acceptable temperatures. For example, if target_temp=23 and
 # hysteresis=2 the acceptable temperature range is 22-24
