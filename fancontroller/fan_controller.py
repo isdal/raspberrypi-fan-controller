@@ -222,9 +222,9 @@ if __name__ == '__main__':
     indoor_sensor = _TempSensorReader('indoor_temp')
     outdoor_sensor = _TempSensorReader('outdoor_temp')
     config = ConfigParser.RawConfigParser({
-        'target_temp': 23,
-        'hysteresis': 1,
-        'min_outside_diff': 1,
+        'target_temp': 22.5,
+        'hysteresis': 0.5,
+        'min_outside_diff': 0.5,
         'period': 5,
         'report_period': 60,
         })
