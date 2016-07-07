@@ -215,7 +215,7 @@ class MetricsUploader:
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
         datefmt="%H:%M:%S", stream=sys.stdout)
 
@@ -236,7 +236,7 @@ if __name__ == '__main__':
         config.read(config_file)
     else:
         logging.info('config file not found, using defaults')
-        logging.debug('current directory: %s, config file: %s', os.getcwd(), config_file)
+        logging.info('current directory: %s, config file: %s', os.getcwd(), config_file)
 
     uploader = MetricsUploader()
     thermostat = Thermostat(target_temp=config.get('DEFAULT', 'target_temp'),

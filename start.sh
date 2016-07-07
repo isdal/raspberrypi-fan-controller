@@ -8,4 +8,4 @@ if [ -n "$pid" ]; then
   echo "Killing old controller"
   kill `pgrep -f fan_controller.py`
 fi
-PYTHONPATH='.' /usr/bin/python fancontroller/fan_controller.py --log=DEBUG
+PYTHONPATH='.' /usr/bin/python fancontroller/fan_controller.py
