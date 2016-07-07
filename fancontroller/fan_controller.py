@@ -239,11 +239,11 @@ if __name__ == '__main__':
         logging.info('current directory: %s, config file: %s', os.getcwd(), config_file)
 
     uploader = MetricsUploader()
-    thermostat = Thermostat(target_temp=config.get('DEFAULT', 'target_temp'),
+    thermostat = Thermostat(target_temp=float(config.get('DEFAULT', 'target_temp')),
                             outside_window=1,
                             inside_window=1,
-                            hysteresis=config.get('DEFAULT', 'hysteresis'),
-                            min_outside_diff=config.get('DEFAULT', 'min_outside_diff'))
+                            hysteresis=float(config.get('DEFAULT', 'hysteresis')),
+                            min_outside_diff=float(config.get('DEFAULT', 'min_outside_diff')))
     logging.info('Thermostat started, target: %f', thermostat._target_temp)
     start_time = time.time()
     last_report_time = start_time
