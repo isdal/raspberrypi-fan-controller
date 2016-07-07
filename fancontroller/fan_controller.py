@@ -248,8 +248,8 @@ if __name__ == '__main__':
     start_time = time.time()
     last_report_time = start_time
     iteration = 0
-    PERIOD = config.get('DEFAULT', 'period')
-    REPORT_PERIOD = config.get('DEFAULT', 'report_period')
+    PERIOD = int(config.get('DEFAULT', 'period'))
+    REPORT_PERIOD = int(config.get('DEFAULT', 'report_period'))
     while True:
         thermostat.RecordIndoorMeasurement(indoor_sensor.Read())
         thermostat.RecordOutdoorMeasurement(outdoor_sensor.Read())        
