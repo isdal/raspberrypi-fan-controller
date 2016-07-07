@@ -236,6 +236,7 @@ if __name__ == '__main__':
         config.read(config_file)
     else:
         logging.info('config file not found, using defaults')
+        logging.debug('current directory: %s, config file: %s', os.getcwd(), config_file)
 
     uploader = MetricsUploader()
     thermostat = Thermostat(target_temp=config.get('DEFAULT', 'target_temp'),
